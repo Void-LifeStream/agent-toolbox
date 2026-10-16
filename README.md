@@ -8,8 +8,9 @@ it was actually needed, not because it looked like a nice idea.
 |---|---|---|
 | [`shot-window.ps1`](shot-window.ps1) | Capture **any** window to a PNG — including Electron / Chromium windows, which come out pure black unless you know about `PrintWindow`'s `nFlags=2` | Windows, PowerShell 5.1+ |
 | [`fork-and-pr.cjs`](fork-and-pr.cjs) | Open a pull request **without `git`**: fork → branch → commit → read-back verify → PR, entirely over `api.github.com` | Node 18+ (no packages) |
+| [`print-checklist/`](print-checklist/) | Render a JSON checklist into a printable A4 sheet — tick boxes, group headers, footer; preview as PNG, print, or export PDF | Windows, PowerShell 7 |
 
-Neither one installs anything, and neither one talks to a service you did not name.
+None of them installs anything, and none of them talks to a service you did not name.
 
 ---
 
@@ -72,6 +73,22 @@ you uploaded the right bytes are different things, and only one of them is check
 
 It is also dry-run by default. Without `--yes` it does not create the fork, the branch, or
 anything else — it just prints the six calls it would make.
+
+## print-checklist.ps1
+
+Printing a tick-box checklist from a script usually means placing every line by hand — and then
+finding out that the preview and the printout disagree. They do, if you use `GraphicsUnit.Display`:
+it means *1/100 inch* on a printer but *one pixel* on the bitmap you preview into, so the same code
+lays out at two different scales and even measures its own text differently. This tool uses points
+everywhere, so the page you approve is the page that prints.
+
+```powershell
+pwsh -File print-checklist/print-checklist.ps1 print-checklist/examples/vehicle-inspection.json
+pwsh -File print-checklist/print-checklist.ps1 print-checklist/examples/vehicle-inspection.json -Mode print -Copies 4
+```
+
+The checklist itself is just JSON; see [print-checklist/README.md](print-checklist/README.md) for the
+spec, the flags and the long version of the trap above.
 
 ---
 
