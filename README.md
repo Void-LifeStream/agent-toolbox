@@ -9,6 +9,7 @@ it was actually needed, not because it looked like a nice idea.
 | [`shot-window.ps1`](shot-window.ps1) | Capture **any** window to a PNG — including Electron / Chromium windows, which come out pure black unless you know about `PrintWindow`'s `nFlags=2` | Windows, PowerShell 5.1+ |
 | [`fork-and-pr.cjs`](fork-and-pr.cjs) | Open a pull request **without `git`**: fork → branch → commit → read-back verify → PR, entirely over `api.github.com` | Node 18+ (no packages) |
 | [`print-checklist/`](print-checklist/) | Render a JSON checklist into a printable A4 sheet — tick boxes, group headers, footer; preview as PNG, print, or export PDF | Windows, PowerShell 7 |
+| [`mnemon-orphans.cjs`](mnemon-orphans.cjs) | Count what a memory space holds that the **main store does not** — the only safe basis for deactivating or deleting a duplicate space | Node 22.5+ (built-in `node:sqlite`, no packages) |
 
 None of them installs anything, and none of them talks to a service you did not name.
 
@@ -89,6 +90,44 @@ pwsh -File print-checklist/print-checklist.ps1 print-checklist/examples/vehicle-
 
 The checklist itself is just JSON; see [print-checklist/README.md](print-checklist/README.md) for the
 spec, the flags and the long version of the trap above.
+
+
+## mnemon-orphans.cjs
+
+[mnemon](https://github.com/omdsh-dev/dsh-mnemon) keeps one SQLite database per "memory space".
+A sync or merge can leave you with several spaces holding the same content — and a duplicate looks
+complete: same row count, same titles, nothing obviously wrong. Before you deactivate or delete one,
+there is exactly one question worth asking:
+
+> **How many of these entries exist only here?**
+
+Three ways to answer it, and two of them are wrong:
+
+| approach | why it fails |
+|---|---|
+| count rows | a duplicate has the same count as its source — it tells you nothing |
+| compare ids | a copy keeps the ids, but a *re-imported* entry gets a **new id** for the same text, so ids under-report "same knowledge" |
+| **compare content hashes** | ✅ what this script does: sha256 of `content`, independent of id and row order |
+
+```bash
+node mnemon-orphans.cjs                        # base = "default", scan every other space
+node mnemon-orphans.cjs --data ~/.mnemon/data
+node mnemon-orphans.cjs --json                 # machine-readable
+node mnemon-orphans.cjs --top 20               # orphan titles to print per space
+```
+
+Read-only: no writes, no deletes, no registry changes. Exit codes: `0` every space is fully
+redundant · `1` at least one space holds orphans · `2` the base store could not be read.
+
+The run that motivated it: 13 spaces, **652 entries** across the non-base ones, and **0 orphans** in
+eight of them — pure copies, safe to switch off. Two spaces held **6 entries between them** that
+existed nowhere else. Counting rows would have said "they all look complete"; comparing by id would
+have missed two of the six.
+
+⚠️ What this tool deliberately does **not** answer: whether a space is currently active. That lives
+in the plugin registry's `active` field, and it is worth checking separately — writing into a
+deactivated space silently re-activates it upstream, and some health reports keep printing a space
+as "protected" long after it was switched off. **Check the registry field, not a screenshot.**
 
 ---
 
