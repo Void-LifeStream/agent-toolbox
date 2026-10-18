@@ -9,6 +9,7 @@ it was actually needed, not because it looked like a nice idea.
 | [`shot-window.ps1`](shot-window.ps1) | Capture **any** window to a PNG — including Electron / Chromium windows, which come out pure black unless you know about `PrintWindow`'s `nFlags=2` | Windows, PowerShell 5.1+ |
 | [`fork-and-pr.cjs`](fork-and-pr.cjs) | Open a pull request **without `git`**: fork → branch → commit → read-back verify → PR, entirely over `api.github.com` | Node 18+ (no packages) |
 | [`update-files.cjs`](update-files.cjs) | Update files in **your own** repo without `git` — dry-run by default; every write is read back and compared by **git blob sha**, not just size | Node 18+ (no packages) |
+| [`safe-publish.cjs`](safe-publish.cjs) | Publish **only what changed** without `git` — commits **on top of the remote tree** (files you did not touch survive), refuses silent line-ending rewrites, and self-checks with `/compare` | Node 18+ (no packages) |
 | [`print-checklist/`](print-checklist/) | Render a JSON checklist into a printable A4 sheet — tick boxes, group headers, footer; preview as PNG, print, or export PDF | Windows, PowerShell 7 |
 | [`mnemon-orphans.cjs`](mnemon-orphans.cjs) | Count what a memory space holds that the **main store does not** — the only safe basis for deactivating or deleting a duplicate space | Node 22.5+ (built-in `node:sqlite`, no packages) |
 
@@ -163,3 +164,4 @@ as "protected" long after it was switched off. **Check the registry field, not a
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
