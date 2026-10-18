@@ -8,6 +8,7 @@ it was actually needed, not because it looked like a nice idea.
 |---|---|---|
 | [`shot-window.ps1`](shot-window.ps1) | Capture **any** window to a PNG — including Electron / Chromium windows, which come out pure black unless you know about `PrintWindow`'s `nFlags=2` | Windows, PowerShell 5.1+ |
 | [`fork-and-pr.cjs`](fork-and-pr.cjs) | Open a pull request **without `git`**: fork → branch → commit → read-back verify → PR, entirely over `api.github.com` | Node 18+ (no packages) |
+| [`update-files.cjs`](update-files.cjs) | Update files in **your own** repo without `git` — dry-run by default; every write is read back and compared by **git blob sha**, not just size | Node 18+ (no packages) |
 | [`print-checklist/`](print-checklist/) | Render a JSON checklist into a printable A4 sheet — tick boxes, group headers, footer; preview as PNG, print, or export PDF | Windows, PowerShell 7 |
 | [`mnemon-orphans.cjs`](mnemon-orphans.cjs) | Count what a memory space holds that the **main store does not** — the only safe basis for deactivating or deleting a duplicate space | Node 22.5+ (built-in `node:sqlite`, no packages) |
 
@@ -74,6 +75,34 @@ you uploaded the right bytes are different things, and only one of them is check
 
 It is also dry-run by default. Without `--yes` it does not create the fork, the branch, or
 anything else — it just prints the six calls it would make.
+
+## update-files.cjs
+
+The other half of `fork-and-pr.cjs`. That one is for repos you *don't* own (fork → branch → PR);
+this one is for repos you **do** — it PUTs the file and stops, because you already have write
+access and a PR would just be ceremony.
+
+```bash
+export GITHUB_TOKEN=...
+node update-files.cjs --repo me/proj --files README.md docs/a.md --message "docs: ..."        # dry run
+node update-files.cjs --repo me/proj --files README.md docs/a.md --message "docs: ..." --yes    # for real
+```
+
+Same two ideas as its sibling, plus one:
+
+- **dry-run unless `--yes`** — without it, zero write requests.
+- **it distinguishes "new" from "update"** — the read happens first, so a 404 is reported as a
+  create, not as an error. (The `sha` is only sent for files that already exist.)
+- **read-back verification by git blob sha** — after the PUT it fetches the file again and compares
+  **size and blob sha**, not just "the API returned 200". A 200 means the call was accepted; it does
+  not mean the branch now holds the bytes you sent.
+
+The sha is computed locally the way git does it — `sha1("blob <len>\0" + content)` — which makes the
+comparison independent of how the server stores the file. If you compare only sizes, a same-length
+edit slips through; hashing is the cheapest way to close that gap.
+
+`README.md` is a good example of why the local path *is* the remote path: run the tool from a
+directory laid out like the repo (`README.md`, `docs/a.md`, …) and nothing needs mapping.
 
 ## print-checklist.ps1
 
