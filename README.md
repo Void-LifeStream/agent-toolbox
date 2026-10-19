@@ -15,6 +15,17 @@ it was actually needed, not because it looked like a nice idea.
 
 None of them installs anything, and none of them talks to a service you did not name.
 
+### Three tools touch GitHub — how to choose
+
+They solve the same *symptom* (no working `git push`) at different scopes, so the choice is mechanical:
+
+| you want to… | use | why |
+|---|---|---|
+| change **a few known files** in a repo you own | `update-files.cjs` | it PUTs exactly those paths and touches nothing else; no local directory layout required |
+| publish **a whole directory** to a repo you own | `safe-publish.cjs` | it commits on top of the remote tree, so files you never touched survive; it also refuses silent CRLF/LF rewrites and self-checks with `/compare` |
+| **delete** something on purpose | `safe-publish.cjs --allow-delete` | `update-files.cjs` never deletes anything |
+| open a PR against **someone else's** repo | `fork-and-pr.cjs` | that one forks first; the other two assume you already have write access |
+
 ---
 
 ## shot-window.ps1
