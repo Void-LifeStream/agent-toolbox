@@ -10,11 +10,17 @@
  * PR). This one updates files in *your own* repo directly, and is the right tool when you already
  * have write access and just want the file changed.
  *
+ * ⚠️ Scope — pick the right tool:
+ *   · this one takes an explicit **file list**, PUTs exactly those paths, and never deletes anything
+ *     (no local directory layout required)
+ *   · publishing a whole **directory** — where files you did not touch must survive, and CRLF/LF
+ *     must not silently rewrite everything — is `safe-publish.cjs`'s job, not this one's
+ *
  * Deliberately conservative:
  *   · dry-run by default — without --yes it performs ZERO write requests
- *   · every file is read back after the write and compared byte-for-byte
- *   · the write is refused when the remote file exists but its size changed since the read
- *     (pass --force only when you know the remote moved under you)
+ *   · every file is read back after the write and compared **by git blob sha**, not just by size
+ *   · the PUT carries the `sha` it read, so if the branch moved in between, GitHub rejects the
+ *     write (409) instead of clobbering it — there is deliberately no "force" flag
  *
  * Usage:
  *   node update-files.cjs --repo owner/name --files README.md docs/a.md --message "docs: ..."
@@ -29,7 +35,6 @@
  *   --branch <name>       default "main"
  *   --token-file <path>   file containing only the token (else $GITHUB_TOKEN)
  *   --yes                 actually write (otherwise dry-run)
- *   --force               overwrite even if the remote size differs from the last read
  *
  * Exit code: 0 = all files verified, 1 = at least one failure.
  */
@@ -39,7 +44,7 @@ const https = require('https');
 const path = require('path');
 
 function parseArgs(argv) {
-  const out = { files: [], branch: 'main', yes: false, force: false, tokenFile: null, repo: null, message: null };
+  const out = { files: [], branch: 'main', yes: false, tokenFile: null, repo: null, message: null };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--files') { while (argv[i + 1] && !argv[i + 1].startsWith('--')) out.files.push(argv[++i]); }
@@ -48,7 +53,6 @@ function parseArgs(argv) {
     else if (a === '--branch') out.branch = argv[++i];
     else if (a === '--token-file') out.tokenFile = argv[++i];
     else if (a === '--yes') out.yes = true;
-    else if (a === '--force') out.force = true;
     else if (a === '-h' || a === '--help') { console.log(fs.readFileSync(__filename, 'utf8').split('*/')[0]); process.exit(0); }
     else { console.error(`unknown argument: ${a}`); process.exit(2); }
   }
